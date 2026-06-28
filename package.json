@@ -3,10 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "tsx watch server.ts",
-    "dev:next": "next dev",
+    "dev": "next dev",
     "build": "next build",
-    "start": "tsx server.ts",
+    "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit"
   },
@@ -14,7 +13,6 @@
     "@supabase/ssr": "^0.6.1",
     "@supabase/supabase-js": "^2.49.8",
     "date-fns": "^4.1.0",
-    "express": "^5.1.0",
     "lucide-react": "^0.511.0",
     "next": "^16.0.0",
     "react": "^19.0.0",
@@ -23,14 +21,12 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.8",
-    "@types/express": "^5.0.2",
     "@types/node": "^22.15.21",
     "@types/react": "^19.1.6",
     "@types/react-dom": "^19.1.5",
     "eslint": "^9.28.0",
     "eslint-config-next": "^16.0.0",
     "tailwindcss": "^4.1.8",
-    "tsx": "^4.19.4",
     "typescript": "^5.8.3"
   }
 }

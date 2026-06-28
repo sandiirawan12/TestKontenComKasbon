@@ -8,8 +8,7 @@ Web app sederhana buat track utang piutang pribadi. Catat siapa hutang berapa ke
 
 | Tech | Fungsi |
 |------|--------|
-| Next.js 16 (App Router) | Frontend + route handler API (Vercel) |
-| Express.js | API server saat dev/prod self-hosted |
+| Next.js 16 (App Router) | Frontend + API route handlers |
 | Tailwind CSS v4 | Styling |
 | Supabase | PostgreSQL + Auth + RLS |
 | Lucide React | Icons |
@@ -17,7 +16,7 @@ Web app sederhana buat track utang piutang pribadi. Catat siapa hutang berapa ke
 | date-fns | Format tanggal relative (`id` locale) |
 
 **Library tambahan:**
-- **Zod** — validasi schema terpusat, dipakai di Express route, Next route handler, dan form client
+- **Zod** — validasi schema terpusat, dipakai di API route handler dan form client
 - **date-fns** — relative time Bahasa Indonesia ("3 hari lalu", "kemarin") via locale `id`
 
 ## Setup Lokal
@@ -51,11 +50,7 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 ### 4. Jalankan
 
 ```bash
-# Dev dengan Express + Next.js (recommended)
 npm run dev
-
-# Atau Next.js saja (API via route handler)
-npm run dev:next
 ```
 
 Buka [http://localhost:3000](http://localhost:3000)
@@ -97,13 +92,11 @@ Tanpa session user yang valid, RLS memblokir semua row.
 1. Push repo ke GitHub
 2. Import di [vercel.com](https://vercel.com)
 3. Set env vars (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`)
-4. Deploy — API jalan via Next.js Route Handlers (bukan custom server)
-
-> Custom Express server (`server.ts`) dipakai untuk dev lokal. Di Vercel, route handler Next.js memakai service layer yang sama.
+4. Deploy — API jalan via Next.js Route Handlers
 
 ## Approach
 
-Arsitektur **dual API layer, single service layer**: business logic (`lib/services/debts.ts`) dan validasi Zod dipakai bersama Express router (local dev) dan Next.js Route Handlers (Vercel serverless). Keputusan ini memenuhi requirement Express.js tanpa mengorbankan deploy Vercel, plus memastikan "Tandai lunas" persist ke DB via `settled_at` timestamp — bukan state client semata.
+Arsitektur **thin API routes + shared service layer**: route handler Next.js (`app/api/debts/`) tipis, business logic di `lib/services/debts.ts`, validasi Zod terpusat. "Tandai lunas" persist ke DB via `settled_at` — bukan state client semata.
 
 ## Trade-off (kalau ada 1 hari lagi)
 
