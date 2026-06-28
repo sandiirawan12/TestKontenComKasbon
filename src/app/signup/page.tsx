@@ -2,12 +2,10 @@
 
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Wallet } from "lucide-react";
 
 export default function SignupPage() {
-  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -32,8 +30,7 @@ export default function SignupPage() {
       return;
     }
 
-    router.push("/");
-    router.refresh();
+    window.location.assign("/");
   }
 
   return (

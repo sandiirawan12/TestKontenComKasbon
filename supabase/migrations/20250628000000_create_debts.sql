@@ -53,3 +53,8 @@ CREATE POLICY "debts_update_own"
 CREATE POLICY "debts_delete_own"
   ON public.debts FOR DELETE
   USING (auth.uid() = user_id);
+
+-- Wajib: tanpa GRANT, Postgres menolak akses meski RLS sudah benar
+GRANT USAGE ON TYPE public.debt_type TO anon, authenticated, service_role;
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.debts TO authenticated;
+GRANT ALL ON TABLE public.debts TO service_role;

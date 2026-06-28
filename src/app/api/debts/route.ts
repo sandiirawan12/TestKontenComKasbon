@@ -1,52 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
-import { createClient } from "@/lib/supabase/server";
+import { getAuthedSupabase } from "@/lib/supabase/server";
 import {
   listDebts,
   getSummaryDebts,
   createDebt,
   computeSummary,
-  NotFoundError,
 } from "@/lib/services/debts";
 import {
   createDebtSchema,
   listQuerySchema,
 } from "@/lib/validation";
-
-async function getAuthedUser() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser();
-
-  if (error || !user) {
-    return { supabase: null, user: null };
-  }
-
-  return { supabase, user };
-}
-
-function handleError(error: unknown) {
-  if (error instanceof NotFoundError) {
-    return NextResponse.json({ error: error.message }, { status: 404 });
-  }
-  console.error("[API]", error);
-  return NextResponse.json(
-    { error: "Ada yang error di server, coba lagi nanti" },
-    { status: 500 }
-  );
-}
+import { handleApiError } from "@/lib/api-error";
 
 export async function GET(request: NextRequest) {
-  const { supabase, user } = await getAuthedUser();
-  if (!supabase || !user) {
+  const auth = await getAuthedSupabase();
+  if (!auth) {
     return NextResponse.json(
       { error: "Kamu harus login dulu" },
       { status: 401 }
     );
   }
 
+  const { supabase, user } = auth;
   const params = Object.fromEntries(request.nextUrl.searchParams);
   const parsed = listQuerySchema.safeParse(params);
 
@@ -65,18 +40,20 @@ export async function GET(request: NextRequest) {
     const summary = computeSummary(summarySource);
     return NextResponse.json({ data: { debts, summary } });
   } catch (error) {
-    return handleError(error);
+    return handleApiError(error);
   }
 }
 
 export async function POST(request: NextRequest) {
-  const { supabase, user } = await getAuthedUser();
-  if (!supabase || !user) {
+  const auth = await getAuthedSupabase();
+  if (!auth) {
     return NextResponse.json(
       { error: "Kamu harus login dulu" },
       { status: 401 }
     );
   }
+
+  const { supabase, user } = auth;
 
   let body: unknown;
   try {
@@ -97,6 +74,6 @@ export async function POST(request: NextRequest) {
     const debt = await createDebt(supabase, user.id, parsed.data);
     return NextResponse.json({ data: debt }, { status: 201 });
   } catch (error) {
-    return handleError(error);
+    return handleApiError(error);
   }
 }

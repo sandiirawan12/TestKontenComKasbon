@@ -43,7 +43,6 @@ Copy `.env.example` ke `.env.local`:
 ```env
 NEXT_PUBLIC_SUPABASE_URL=https://xxxxx.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbG...
-SUPABASE_SERVICE_ROLE_KEY=eyJhbG...   # opsional, buat admin script saja
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
 
