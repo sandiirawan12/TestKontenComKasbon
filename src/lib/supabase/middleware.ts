@@ -30,7 +30,7 @@ export async function updateSession(request: NextRequest) {
     },
   });
 
-  // Verifikasi session ke Supabase Auth (aman, tanpa warning getSession)
+  // refresh session, redirect kalau belum login
   const {
     data: { user },
   } = await supabase.auth.getUser();

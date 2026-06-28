@@ -1,27 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { getAuthedSupabase } from "@/lib/supabase/server";
-import { updateDebt, deleteDebt, NotFoundError } from "@/lib/services/debts";
+import { requireUser, handleApiError } from "@/lib/supabase/server";
+import { updateDebt, deleteDebt } from "@/lib/services/debts";
 import { updateDebtSchema } from "@/lib/validation";
-import { handleApiError } from "@/lib/api-error";
 
-interface RouteContext {
-  params: Promise<{ id: string }>;
-}
+type RouteContext = { params: Promise<{ id: string }> };
 
-export async function PATCH(request: NextRequest, context: RouteContext) {
-  const auth = await getAuthedSupabase();
-  if (!auth) {
-    return NextResponse.json(
-      { error: "Kamu harus login dulu" },
-      { status: 401 }
-    );
-  }
+export async function PATCH(request: NextRequest, { params }: RouteContext) {
+  const auth = await requireUser();
+  if ("response" in auth) return auth.response;
 
   const { supabase, user } = auth;
-  const { id } = await context.params;
-  const idParsed = z.string().uuid("ID tidak valid").safeParse(id);
-  if (!idParsed.success) {
+  const { id } = await params;
+
+  const idCheck = z.string().uuid().safeParse(id);
+  if (!idCheck.success) {
     return NextResponse.json({ error: "ID tidak valid" }, { status: 400 });
   }
 
@@ -41,31 +34,27 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
   }
 
   try {
-    const debt = await updateDebt(supabase, user.id, idParsed.data, parsed.data);
+    const debt = await updateDebt(supabase, user.id, idCheck.data, parsed.data);
     return NextResponse.json({ data: debt });
   } catch (error) {
     return handleApiError(error);
   }
 }
 
-export async function DELETE(_request: NextRequest, context: RouteContext) {
-  const auth = await getAuthedSupabase();
-  if (!auth) {
-    return NextResponse.json(
-      { error: "Kamu harus login dulu" },
-      { status: 401 }
-    );
-  }
+export async function DELETE(_request: NextRequest, { params }: RouteContext) {
+  const auth = await requireUser();
+  if ("response" in auth) return auth.response;
 
   const { supabase, user } = auth;
-  const { id } = await context.params;
-  const idParsed = z.string().uuid("ID tidak valid").safeParse(id);
-  if (!idParsed.success) {
+  const { id } = await params;
+
+  const idCheck = z.string().uuid().safeParse(id);
+  if (!idCheck.success) {
     return NextResponse.json({ error: "ID tidak valid" }, { status: 400 });
   }
 
   try {
-    await deleteDebt(supabase, user.id, idParsed.data);
+    await deleteDebt(supabase, user.id, idCheck.data);
     return NextResponse.json({ data: { success: true } });
   } catch (error) {
     return handleApiError(error);

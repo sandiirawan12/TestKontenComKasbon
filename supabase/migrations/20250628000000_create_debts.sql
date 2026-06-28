@@ -58,3 +58,6 @@ CREATE POLICY "debts_delete_own"
 GRANT USAGE ON TYPE public.debt_type TO anon, authenticated, service_role;
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.debts TO authenticated;
 GRANT ALL ON TABLE public.debts TO service_role;
+
+-- Defense-in-depth: anon tidak boleh akses tabel (hanya authenticated + RLS)
+REVOKE ALL ON TABLE public.debts FROM anon;

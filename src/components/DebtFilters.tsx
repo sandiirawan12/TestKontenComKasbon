@@ -6,9 +6,16 @@ import { Search } from "lucide-react";
 interface DebtFiltersProps {
   filters: ListQuery;
   onChange: (filters: ListQuery) => void;
+  groupByPerson?: boolean;
+  onGroupByPersonChange?: (value: boolean) => void;
 }
 
-export function DebtFilters({ filters, onChange }: DebtFiltersProps) {
+export function DebtFilters({
+  filters,
+  onChange,
+  groupByPerson,
+  onGroupByPersonChange,
+}: DebtFiltersProps) {
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
       <div className="relative flex-1 sm:min-w-[200px]">
@@ -67,6 +74,18 @@ export function DebtFilters({ filters, onChange }: DebtFiltersProps) {
         <option value="amount_desc">Jumlah terbesar</option>
         <option value="amount_asc">Jumlah terkecil</option>
       </select>
+
+      {onGroupByPersonChange && (
+        <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm">
+          <input
+            type="checkbox"
+            checked={groupByPerson ?? false}
+            onChange={(e) => onGroupByPersonChange(e.target.checked)}
+            className="accent-emerald-600"
+          />
+          Kelompok per orang
+        </label>
+      )}
     </div>
   );
 }

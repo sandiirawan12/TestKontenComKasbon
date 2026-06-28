@@ -4,17 +4,6 @@ import { useCallback, useEffect, useState } from "react";
 import type { Debt, DebtSummary } from "@/types/debt";
 import type { ListQuery } from "@/lib/validation";
 
-interface DebtsResponse {
-  data: {
-    debts: Debt[];
-    summary: DebtSummary;
-  };
-}
-
-interface ApiErrorResponse {
-  error: string;
-}
-
 export function useDebts(filters: ListQuery) {
   const [debts, setDebts] = useState<Debt[]>([]);
   const [summary, setSummary] = useState<DebtSummary>({
@@ -36,18 +25,16 @@ export function useDebts(filters: ListQuery) {
     if (filters.sort) params.set("sort", filters.sort);
 
     try {
-      const res = await fetch(`/api/debts?${params.toString()}`);
-      const json = (await res.json()) as DebtsResponse | ApiErrorResponse;
+      const res = await fetch(`/api/debts?${params}`);
+      const json = await res.json();
 
       if (!res.ok) {
-        setError("error" in json ? json.error : "Gagal ambil data");
+        setError(json.error ?? "Gagal ambil data");
         return;
       }
 
-      if ("data" in json) {
-        setDebts(json.data.debts);
-        setSummary(json.data.summary);
-      }
+      setDebts(json.data.debts);
+      setSummary(json.data.summary);
     } catch {
       setError("Koneksi bermasalah, coba lagi ya");
     } finally {
@@ -62,56 +49,30 @@ export function useDebts(filters: ListQuery) {
   return { debts, summary, loading, error, refetch: fetchDebts };
 }
 
-export async function createDebtApi(
-  body: Record<string, unknown>
-): Promise<{ ok: true; debt: Debt } | { ok: false; error: string }> {
-  const res = await fetch("/api/debts", {
-    method: "POST",
+export async function saveDebt(
+  body: Record<string, unknown>,
+  id?: string
+): Promise<string | null> {
+  const res = await fetch(id ? `/api/debts/${id}` : "/api/debts", {
+    method: id ? "PATCH" : "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
-  const json = (await res.json()) as { data?: Debt; error?: string };
-
-  if (!res.ok) {
-    return { ok: false, error: json.error ?? "Gagal simpan" };
-  }
-
-  return { ok: true, debt: json.data! };
+  const json = await res.json();
+  if (!res.ok) return json.error ?? "Gagal simpan";
+  return null;
 }
 
-export async function updateDebtApi(
-  id: string,
-  body: Record<string, unknown>
-): Promise<{ ok: true; debt: Debt } | { ok: false; error: string }> {
+export async function settleDebt(id: string): Promise<boolean> {
   const res = await fetch(`/api/debts/${id}`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
+    body: JSON.stringify({ settled: true }),
   });
-  const json = (await res.json()) as { data?: Debt; error?: string };
-
-  if (!res.ok) {
-    return { ok: false, error: json.error ?? "Gagal update" };
-  }
-
-  return { ok: true, debt: json.data! };
+  return res.ok;
 }
 
-export async function deleteDebtApi(
-  id: string
-): Promise<{ ok: true } | { ok: false; error: string }> {
+export async function deleteDebt(id: string): Promise<boolean> {
   const res = await fetch(`/api/debts/${id}`, { method: "DELETE" });
-  const json = (await res.json()) as { error?: string };
-
-  if (!res.ok) {
-    return { ok: false, error: json.error ?? "Gagal hapus" };
-  }
-
-  return { ok: true };
-}
-
-export async function settleDebtApi(
-  id: string
-): Promise<{ ok: true; debt: Debt } | { ok: false; error: string }> {
-  return updateDebtApi(id, { settled: true });
+  return res.ok;
 }

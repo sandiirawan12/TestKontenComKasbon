@@ -1,10 +1,10 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
-import type { User } from "@supabase/supabase-js";
-import "@/lib/supabase/dev-tls";
+import { NextResponse } from "next/server";
+import { NotFoundError } from "@/lib/services/debts";
 
-type CookieToSet = { name: string; value: string; options: CookieOptions };
+type Cookie = { name: string; value: string; options: CookieOptions };
 
 export async function createClient() {
   const cookieStore = await cookies();
@@ -17,13 +17,13 @@ export async function createClient() {
         getAll() {
           return cookieStore.getAll();
         },
-        setAll(cookiesToSet: CookieToSet[]) {
+        setAll(cookiesToSet: Cookie[]) {
           try {
             cookiesToSet.forEach(({ name, value, options }) =>
               cookieStore.set(name, value, options)
             );
           } catch {
-            // Server Component — ignore jika cookie read-only
+            // read-only di Server Component, abaikan
           }
         },
       },
@@ -31,45 +31,52 @@ export async function createClient() {
   );
 }
 
-async function resolveUser(
-  supabase: Awaited<ReturnType<typeof createClient>>
-): Promise<{ user: User; accessToken: string } | null> {
+export async function getAuthedSupabase() {
+  const supabase = await createClient();
+
   const {
     data: { user },
-    error,
   } = await supabase.auth.getUser();
-  if (error || !user) return null;
+  if (!user) return null;
 
   const {
     data: { session },
   } = await supabase.auth.getSession();
   if (!session?.access_token) return null;
 
-  return { user, accessToken: session.access_token };
-}
-
-function createAuthedClient(accessToken: string) {
-  return createSupabaseClient(
+  const authed = createSupabaseClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
-      global: { headers: { Authorization: `Bearer ${accessToken}` } },
+      global: { headers: { Authorization: `Bearer ${session.access_token}` } },
       auth: { persistSession: false, autoRefreshToken: false },
     }
   );
+
+  return { supabase: authed, user };
 }
 
-export async function getAuthedSupabase() {
-  const supabase = await createClient();
-  const auth = await resolveUser(supabase);
-  if (!auth) return null;
-  return {
-    supabase: createAuthedClient(auth.accessToken),
-    user: auth.user,
-  };
-}
-
-export async function getSessionUser() {
+export async function requireUser() {
   const auth = await getAuthedSupabase();
-  return auth?.user ?? null;
+  if (!auth) {
+    return {
+      response: NextResponse.json(
+        { error: "Kamu harus login dulu" },
+        { status: 401 }
+      ),
+    };
+  }
+  return { supabase: auth.supabase, user: auth.user };
+}
+
+export function handleApiError(error: unknown) {
+  if (error instanceof NotFoundError) {
+    return NextResponse.json({ error: error.message }, { status: 404 });
+  }
+
+  console.error("[API]", error);
+  return NextResponse.json(
+    { error: "Ada yang error di server, coba lagi nanti" },
+    { status: 500 }
+  );
 }

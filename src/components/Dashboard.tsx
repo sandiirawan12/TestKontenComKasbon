@@ -1,16 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Wallet, Loader2, AlertCircle } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Plus, Wallet, Loader2, AlertCircle, LogOut } from "lucide-react";
 import type { Debt } from "@/types/debt";
 import type { ListQuery } from "@/lib/validation";
 import { useDebts } from "@/hooks/useDebts";
+import { createClient } from "@/lib/supabase/client";
 import { SummaryCards } from "@/components/SummaryCards";
 import { DebtFilters } from "@/components/DebtFilters";
 import { DebtList } from "@/components/DebtList";
 import { DebtFormModal } from "@/components/DebtFormModal";
-import { LogoutButton } from "@/components/LogoutButton";
-import { SummaryChart } from "@/components/SummaryChart";
 
 const defaultFilters: ListQuery = {
   status: "all",
@@ -19,11 +19,20 @@ const defaultFilters: ListQuery = {
 };
 
 export function Dashboard() {
+  const router = useRouter();
   const [filters, setFilters] = useState<ListQuery>(defaultFilters);
+  const [groupByPerson, setGroupByPerson] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [editDebt, setEditDebt] = useState<Debt | null>(null);
 
   const { debts, summary, loading, error, refetch } = useDebts(filters);
+
+  async function handleLogout() {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push("/login");
+    router.refresh();
+  }
 
   function handleEdit(debt: Debt) {
     setEditDebt(debt);
@@ -47,12 +56,17 @@ export function Dashboard() {
             <p className="text-xs text-zinc-500">Track hutang piutang kamu</p>
           </div>
         </div>
-        <LogoutButton />
+        <button
+          onClick={() => void handleLogout()}
+          className="inline-flex items-center gap-2 rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm font-medium text-zinc-600 transition hover:bg-zinc-50"
+        >
+          <LogOut className="h-4 w-4" />
+          <span className="hidden sm:inline">Keluar</span>
+        </button>
       </header>
 
-      <section className="mb-6 space-y-4">
+      <section className="mb-6">
         <SummaryCards summary={summary} />
-        <SummaryChart summary={summary} />
       </section>
 
       <section className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -67,7 +81,12 @@ export function Dashboard() {
       </section>
 
       <div className="mb-4">
-        <DebtFilters filters={filters} onChange={setFilters} />
+        <DebtFilters
+          filters={filters}
+          onChange={setFilters}
+          groupByPerson={groupByPerson}
+          onGroupByPersonChange={setGroupByPerson}
+        />
       </div>
 
       {loading && (
@@ -91,7 +110,12 @@ export function Dashboard() {
       )}
 
       {!loading && !error && (
-        <DebtList debts={debts} onEdit={handleEdit} onRefresh={refetch} />
+        <DebtList
+          debts={debts}
+          onEdit={handleEdit}
+          onRefresh={refetch}
+          groupByPerson={groupByPerson}
+        />
       )}
 
       <DebtFormModal

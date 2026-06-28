@@ -1,29 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAuthedSupabase } from "@/lib/supabase/server";
+import { requireUser, handleApiError } from "@/lib/supabase/server";
 import {
   listDebts,
-  getSummaryDebts,
+  fetchUnsettledDebts,
   createDebt,
-  computeSummary,
+  summarizeDebts,
 } from "@/lib/services/debts";
-import {
-  createDebtSchema,
-  listQuerySchema,
-} from "@/lib/validation";
-import { handleApiError } from "@/lib/api-error";
+import { createDebtSchema, listQuerySchema } from "@/lib/validation";
 
 export async function GET(request: NextRequest) {
-  const auth = await getAuthedSupabase();
-  if (!auth) {
-    return NextResponse.json(
-      { error: "Kamu harus login dulu" },
-      { status: 401 }
-    );
-  }
+  const auth = await requireUser();
+  if ("response" in auth) return auth.response;
 
   const { supabase, user } = auth;
-  const params = Object.fromEntries(request.nextUrl.searchParams);
-  const parsed = listQuerySchema.safeParse(params);
+  const parsed = listQuerySchema.safeParse(
+    Object.fromEntries(request.nextUrl.searchParams)
+  );
 
   if (!parsed.success) {
     return NextResponse.json(
@@ -33,25 +25,21 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const [debts, summarySource] = await Promise.all([
+    const [debts, unsettled] = await Promise.all([
       listDebts(supabase, user.id, parsed.data),
-      getSummaryDebts(supabase, user.id),
+      fetchUnsettledDebts(supabase, user.id),
     ]);
-    const summary = computeSummary(summarySource);
-    return NextResponse.json({ data: { debts, summary } });
+    return NextResponse.json({
+      data: { debts, summary: summarizeDebts(unsettled) },
+    });
   } catch (error) {
     return handleApiError(error);
   }
 }
 
 export async function POST(request: NextRequest) {
-  const auth = await getAuthedSupabase();
-  if (!auth) {
-    return NextResponse.json(
-      { error: "Kamu harus login dulu" },
-      { status: 401 }
-    );
-  }
+  const auth = await requireUser();
+  if ("response" in auth) return auth.response;
 
   const { supabase, user } = auth;
 
